@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e723b2257df7dd44098d233030109631, type: 3}
+  m_Name: WeavingConfig
+  m_EditorClassIdentifier: 
+  gridSize: 26
+  blockSize: 0.2
+  defaultBlockColor: {r: 1, g: 1, b: 1, a: 1}
+  threadSpeed: 50
+  threadWidth: 0.1
+  alphaThreshold: 0.5
+  blockMaterial: {fileID: 0}
+  threadMaterial: {fileID: 0}
