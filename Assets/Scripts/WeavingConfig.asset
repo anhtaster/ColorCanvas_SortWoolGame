@@ -15,8 +15,8 @@ MonoBehaviour:
   gridSize: 26
   blockSize: 0.2
   defaultBlockColor: {r: 1, g: 1, b: 1, a: 1}
-  threadSpeed: 50
-  threadWidth: 0.1
-  alphaThreshold: 0.5
-  blockMaterial: {fileID: 0}
-  threadMaterial: {fileID: 0}
+  threadSpeed: 12
+  threadWidth: 0.2
+  alphaThreshold: 0.01
+  blockMaterial: {fileID: 2100000, guid: c07d82a7036df5c4781d8390bb0f0f8a, type: 2}
+  threadMaterial: {fileID: 2100000, guid: c07d82a7036df5c4781d8390bb0f0f8a, type: 2}
