@@ -10,86 +10,113 @@ public class ThreadVisualizer3D : MonoBehaviour
 
     private Transform anchor;
     private Vector3 tipPos;
-    private float oscTime;
 
-    private List<Vector3> curvePoints = new();
+    private ThreadRope rope = new ThreadRope();
 
+    // Điều chỉnh rope
+    [Header("Rope Physics Settings")]
+    public int ropeSegments = 16;
+    public float segmentLength = 0.08f;
+    public float threadFollowSpeed = 8f;
+
+    private List<Vector3> curvePoints = new List<Vector3>();
+
+    // ---------------------------------------------------------
     public void Initialize(WeavingConfig configuration)
     {
         config = configuration;
-        meshTube = gameObject.AddComponent<ThreadMesh3D>();
-        meshTube.SetMaterial(config.ThreadMaterial);
+
+        meshTube = GetComponent<ThreadMesh3D>();
+        if (meshTube == null)
+            meshTube = gameObject.AddComponent<ThreadMesh3D>();
+
         meshTube.radius = config.ThreadWidth * 0.5f;
+        meshTube.SetMaterial(config.ThreadMaterial);
     }
 
+    // ---------------------------------------------------------
     public void AttachTo(Transform spoolAnchor, Color color)
     {
         anchor = spoolAnchor;
         tipPos = anchor.position;
-        meshTube.SetMaterial(new Material(config.ThreadMaterial));
 
-        MeshRenderer renderer = meshTube.GetComponent<MeshRenderer>();
-        if (renderer != null)
-        {
-            renderer.material.color = color;
-        }
+        // khởi tạo rope với segment
+        rope.Initialize(anchor.position, ropeSegments, segmentLength);
+
+        meshTube.gameObject.SetActive(true);
         meshTube.ResetMesh();
+
+        Material mat = new Material(config.ThreadMaterial);
+        mat.color = color;
+        meshTube.SetMaterial(mat);
     }
 
+    // ---------------------------------------------------------
     public IEnumerator MoveTipTo(Vector3 target, float speed)
     {
         target.z += 0.02f;
+
         while ((tipPos - target).sqrMagnitude > 0.0001f)
         {
             tipPos = Vector3.MoveTowards(tipPos, target, speed * Time.deltaTime);
             RebuildCurve();
             yield return null;
         }
+
         tipPos = target;
         RebuildCurve();
     }
 
+    Vector3 CatmullRom(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
+    {
+        return 0.5f * (
+            (2f * p1) +
+            (-p0 + p2) * t +
+            (2f * p0 - 5f * p1 + 4f * p2 - p3) * t * t +
+            (-p0 + 3f * p1 - 3f * p2 + p3) * t * t * t
+        );
+    }
+
+
+    // ---------------------------------------------------------
     private void RebuildCurve()
     {
         if (anchor == null) return;
 
-        oscTime += Time.deltaTime * 6f;
+        float dist = Vector3.Distance(anchor.position, tipPos);
 
-        Vector3 p0 = anchor.position + anchor.right * Mathf.Sin(oscTime) * 0.12f;
-        Vector3 p3 = tipPos;
-        Vector3 ab = p3 - p0;
-        Vector3 up = Vector3.up;
+        // Swing anchor
+        float swing = Mathf.Sin(Time.time * (6f + dist * 0.5f)) * (0.05f + dist * 0.02f);
+        Vector3 anchorPos = anchor.position + anchor.right * swing;
 
-        float sag = Mathf.Clamp(ab.magnitude * 0.2f, 0f, 1.5f);
-        Vector3 p1 = p0 + ab * 0.25f + up * sag;
-        Vector3 p2 = p0 + ab * 0.75f + up * sag * 0.4f;
+        // Rope Physics
+        rope.Simulate(anchorPos, tipPos);
 
-        int samples = 32;
+        // RENDER BẰNG SPLINE
         curvePoints.Clear();
-        for (int i = 0; i < samples; i++)
+
+        for (int i = 0; i < rope.nodes.Count - 3; i++)
         {
-            float t = i / (samples - 1f);
-            curvePoints.Add(EvaluateCubic(p0, p1, p2, p3, t));
+            Vector3 p0 = rope.nodes[i].current;
+            Vector3 p1 = rope.nodes[i + 1].current;
+            Vector3 p2 = rope.nodes[i + 2].current;
+            Vector3 p3 = rope.nodes[i + 3].current;
+
+            // phân nhỏ mỗi đoạn spline thành nhiều mẫu
+            for (int j = 0; j < 6; j++)
+            {
+                float t = j / 6f;
+                curvePoints.Add(CatmullRom(p0, p1, p2, p3, t));
+            }
         }
 
         meshTube.GenerateTube(curvePoints);
     }
 
-    private Vector3 EvaluateCubic(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, float t)
-    {
-        float u = 1f - t;
-        return u * u * u * p0 + 3f * u * u * t * p1 + 3f * u * t * t * p2 + t * t * t * p3;
-    }
 
+    // ---------------------------------------------------------
     public void HideThread()
     {
-        if (meshTube != null)
-        {
-            MeshFilter meshFilter = meshTube.GetComponent<MeshFilter>();
-            if (meshFilter != null && meshFilter.mesh != null)
-            {
-                meshFilter.mesh.Clear();
-            }
-        }
+        meshTube.gameObject.SetActive(false);
     }
 }
